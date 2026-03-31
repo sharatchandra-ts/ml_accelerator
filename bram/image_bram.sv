@@ -11,7 +11,7 @@ module image_bram #(
 
   logic signed [PIX_WIDTH-1:0] mem [DEPTH];
 
-  initial $readmemh("image.hex", mem);
+  initial $readmemh("/Users/sharat/Development/system-verilog/ml_accelerator/weights/image.hex", mem);
 
   always_ff @(posedge clk)
     data_out <= mem[addr];

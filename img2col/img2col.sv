@@ -29,10 +29,10 @@ module img2col #(
       kr    <= 0;
       kc    <= 0;
     end else if (enable) begin
-      if (kc == K_W - 1) begin
-        kc <= 0;
-        if (kr == K_H - 1) begin
-          kr <= 0;
+      if (kr == K_H - 1) begin
+        kr <= 0;
+        if (kc == K_W - 1) begin
+          kc <= 0;
           if (out_c == out_W - 1) begin
             out_c <= 0;
             if (out_r == out_H - 1)
@@ -42,9 +42,9 @@ module img2col #(
           end else
             out_c <= out_c + 1;
         end else
-          kr <= kr + 1;
+          kc <= kc + 1;
       end else
-        kc <= kc + 1;
+        kr <= kr + 1;
     end
   end
 

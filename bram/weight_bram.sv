@@ -8,7 +8,7 @@ module weight_bram #(
 );
   logic signed [DATA_WIDTH-1:0] mem [DEPTH];
 
-  initial $readmemh("conv_weights.hex", mem);
+  initial $readmemh("/Users/sharat/Development/system-verilog/ml_accelerator/weights/conv_weights.hex", mem);
 
   always_ff @(posedge clk)
     data_out <= mem[addr];

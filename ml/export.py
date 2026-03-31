@@ -17,7 +17,7 @@ fc_bias      = model.fc.bias.detach().numpy()       # shape: (10,)
 SCALE = 2**8  # 256
 
 def quantise(arr):
-    return np.clip(np.round(arr * SCALE), -32768, 32767).astype(np.int32)
+    return np.clip(np.round(arr * SCALE), -32768, 32767).astype(np.int16)
 
 conv_w_q = quantise(conv_weights)
 conv_b_q = quantise(conv_bias)

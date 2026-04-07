@@ -19,7 +19,7 @@ module weight_loading_tb;
   logic clear_in_tb [COLS];
 
   // Temporary buffer for the first 3 weights of each row
-  logic signed [W_WIDTH-1:0] row_buffer [0:2]; 
+  logic signed [W_WIDTH-1:0] row_buffer [0:2];
 
   // Clock Generation
   initial clk = 0;
@@ -50,35 +50,35 @@ module weight_loading_tb;
       valid_in_tb[i] = 0;
       clear_in_tb[i] = 0;
     end
-    
+
     rst_n = 0; enable = 0; load_en = 0;
     #20 rst_n = 1;
-    
+
     $display("--- Starting Hardware-Strict Weight Load ---");
-    
+
     for (int r = 0; r < ROWS; r++) begin
         // Collect weights for Col 0, 1, and 2
         for (int c = 0; c < 3; c++) begin
             enable = 1;
             @(posedge clk);
             enable = 0; // Turn off to ensure single-step
-            @(posedge clk); 
+            @(posedge clk);
             row_buffer[c] = weight_out;
         end
 
         // The 4th Weight (Col 3): Direct Pass-through
         enable = 1;
-        @(posedge clk); 
-        enable = 0;     
-        @(posedge clk); 
-        
+        @(posedge clk);
+        enable = 0;
+        @(posedge clk);
+
         load_en = 1;
         w_in_tb[3] = row_buffer[0];
         w_in_tb[2] = row_buffer[1];
         w_in_tb[1] = row_buffer[2];
-        w_in_tb[0] = weight_out; 
+        w_in_tb[0] = weight_out;
 
-        @(posedge clk); 
+        @(posedge clk);
         load_en = 0;
         for(int i=0; i<COLS; i++) w_in_tb[i] = 0;
         $display("Row %0d loaded into Array Interface...", r);
@@ -99,7 +99,7 @@ module weight_loading_tb;
     $display("Row 7: | %d | %d | %d | %d |", u_array.row_gen[7].column_gen[0].pe_inst.w_reg, u_array.row_gen[7].column_gen[1].pe_inst.w_reg, u_array.row_gen[7].column_gen[2].pe_inst.w_reg, u_array.row_gen[7].column_gen[3].pe_inst.w_reg);
     $display("Row 8: | %d | %d | %d | %d |", u_array.row_gen[8].column_gen[0].pe_inst.w_reg, u_array.row_gen[8].column_gen[1].pe_inst.w_reg, u_array.row_gen[8].column_gen[2].pe_inst.w_reg, u_array.row_gen[8].column_gen[3].pe_inst.w_reg);
     // [Explicit $display lines for Row 8 down to 0 here...]
-    $display("------------------------------------------------------------\n");    
+    $display("------------------------------------------------------------\n");
 
     #100 $finish;
   end

@@ -7,7 +7,7 @@ module tb_img2col_bram_skewed;
   localparam K_W   = 3;
   localparam K_H   = 3;
   localparam PIX_WIDTH = 8;
-  localparam N_PATCHES = 9;
+  localparam N_PATCHES = 4;
   localparam PATCH_SIZE = K_W * K_H;
 
   logic clk, rst_n, enable;
@@ -55,6 +55,7 @@ module tb_img2col_bram_skewed;
 
       $display("--- Loading 9 patches (81 pixels) into buffer ---");
       wait(buf_full);
+      @(posedge clk);  // ← add this
       
       $display("\n--- Starting Skewed Output (9 Parallel Columns) ---");
       // Updated display header
@@ -64,7 +65,7 @@ module tb_img2col_bram_skewed;
         @(posedge clk);
         if (out_valid) begin
           $write("%t | %b |", $time, out_valid);
-          for (int i = 0; i < 9; i++) $write(" %3d |", col_out[i]);
+          for (int i = 0; i < N_PATCHES; i++) $write(" %3d |", col_out[i]);
           $display("");
         end
       end

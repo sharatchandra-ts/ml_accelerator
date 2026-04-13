@@ -5,24 +5,25 @@ module systolic_feeder #(
 )(
     input  logic                   clk,
     input  logic                   rst_n,
-    input  logic [DATA_WIDTH-1:0]  img_data_in,
-    input  logic                   data_valid_in, 
-    output logic [ROWS-1:0][DATA_WIDTH-1:0] systolic_out
+    // CHANGED: Input data can be signed
+    input  logic signed [DATA_WIDTH-1:0]  img_data_in,
+    input  logic                          data_valid_in, 
+    output logic                          data_valid_out,
+    // CHANGED: Output array must be signed
+    output logic signed [ROWS-1:0][DATA_WIDTH-1:0] systolic_out
 );
 
-    // --- 1. Dual Storage (Ping-Pong) ---
-    // Added a 3rd dimension [2] to act as two separate banks
-    logic [DATA_WIDTH-1:0] mem [0:1][0:COLS-1][0:ROWS-1];
+    // CHANGED: Internal memory storage must be signed
+    logic signed [DATA_WIDTH-1:0] mem [0:1][0:COLS-1][0:ROWS-1];
     
     logic [5:0] write_cnt;
-    logic [1:0] burst_cnt;
     logic is_bursting;
+    logic [1:0] burst_cnt;
     logic full_pulse;
-    
-    logic write_bank; // Which bank we are loading
-    logic read_bank;  // Which bank we are bursting from
+    logic write_bank; 
+    logic read_bank;  
 
-    // --- 2. Input Logic (Loading Bank A while Bank B might be reading) ---
+    // --- 1. Input Logic ---
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             write_cnt  <= 0;
@@ -30,11 +31,10 @@ module systolic_feeder #(
             write_bank <= 0;
         end else if (data_valid_in) begin
             mem[write_bank][write_cnt / ROWS][write_cnt % ROWS] <= img_data_in;
-            
             if (write_cnt == (ROWS * COLS) - 1) begin
                 write_cnt  <= 0;
-                full_pulse <= 1;        // Signal that a bank is ready
-                write_bank <= ~write_bank; // Swap to the other bank for next data
+                full_pulse <= 1;        
+                write_bank <= ~write_bank;
             end else begin
                 write_cnt  <= write_cnt + 1;
                 full_pulse <= 0;
@@ -44,7 +44,7 @@ module systolic_feeder #(
         end
     end
 
-    // --- 3. Burst Control ---
+    // --- 2. Burst Control ---
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             is_bursting <= 0;
@@ -53,37 +53,44 @@ module systolic_feeder #(
         end else if (full_pulse) begin
             is_bursting <= 1;
             burst_cnt   <= 0;
-            read_bank   <= ~write_bank; // Read the bank that was JUST filled
+            read_bank   <= ~write_bank; 
         end else if (is_bursting) begin
-            if (burst_cnt == COLS - 1) 
-                is_bursting <= 0;
-            else 
-                burst_cnt <= burst_cnt + 1;
+            if (burst_cnt == COLS - 1) is_bursting <= 0;
+            else                       burst_cnt <= burst_cnt + 1;
         end
     end
 
-    // --- 4. Skewing Logic ---
+    // --- 3. Skewing Logic & Valid Generation ---
+    logic [ROWS-1:0] pipe_valid;
+
     generate
         for (genvar r = 0; r < ROWS; r++) begin : skew_row
-            logic [DATA_WIDTH-1:0] pipe [0:r];
+            // CHANGED: Pipeline registers must be signed to prevent unsigned extension
+            logic signed [DATA_WIDTH-1:0] pipe [0:r];
+            logic v_pipe [0:r];
 
             always_ff @(posedge clk or negedge rst_n) begin
                 if (!rst_n) begin
-                    for (int j = 0; j <= r; j++) pipe[j] <= '0;
+                    for (int j = 0; j <= r; j++) begin 
+                        pipe[j] <= '0; 
+                        v_pipe[j] <= 0; 
+                    end
                 end else begin
-                    // Read from the stable 'read_bank'
-                    if (is_bursting) 
-                        pipe[0] <= mem[read_bank][burst_cnt][r];
-                    else 
-                        pipe[0] <= '0;
+                    // When is_bursting is false, we feed '0 to keep the pipe clean
+                    pipe[0]   <= (is_bursting) ? mem[read_bank][burst_cnt][r] : '0;
+                    v_pipe[0] <= is_bursting;
                     
                     for (int j = 1; j <= r; j++) begin
-                        pipe[j] <= pipe[j-1];
+                        pipe[j]   <= pipe[j-1];
+                        v_pipe[j] <= v_pipe[j-1];
                     end
                 end
             end
             assign systolic_out[r] = pipe[r];
+            assign pipe_valid[r]   = v_pipe[r];
         end
     endgenerate
+
+    assign data_valid_out = |pipe_valid;
 
 endmodule

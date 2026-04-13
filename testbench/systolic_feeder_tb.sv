@@ -44,7 +44,7 @@ module tb_complete_systolic_feed;
     ) u_feeder (
         .clk(clk),
         .rst_n(rst_n),
-        .img_data_in(addr),
+        .img_data_in(pixel_out),
         .data_valid_in(valid), // Connects directly to im2col valid
         .systolic_out(systolic_out)
     );
